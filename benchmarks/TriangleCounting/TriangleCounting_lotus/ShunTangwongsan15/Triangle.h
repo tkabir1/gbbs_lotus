@@ -32,7 +32,29 @@
 
 namespace gbbs {
 
-
+template <typename Slice>
+long intersect_size(Slice a, Slice b) {
+  if (a.size() == 0 || b.size() == 0) return 0;
+  if (a.size() > b.size()) return intersect_size(b,a);
+  if (b.size() < 16 * a.size()) {
+    long count = 0;
+    auto ai = a.begin(); auto ae = a.end();
+    auto bi = b.begin(); auto be = b.end();
+    while (ai < ae && bi < be) {
+      if (*ai == *bi) ai++, bi++, count++;
+      else if (*ai < *bi) ai++;
+      else bi++;
+    }
+    return count;
+  }
+  long ma = a.size()/2;
+  auto mb = std::lower_bound(b.begin(), b.end(), a[ma]) - b.begin();
+  int match = (mb < b.size() && b[mb] == a[ma]);
+  return (match +
+          intersect_size(a.cut(0, ma), b.cut(0, mb)) +
+          intersect_size(a.cut(ma + 1, a.size()),
+                         b.cut(mb + match, b.size())));
+}
 template <class Graph>
 struct Lotus_Graph
 {
@@ -69,14 +91,18 @@ struct countF {
 
 template <class Graph>
 inline uintE* rankNodes(Graph& G, size_t n) {
+  std::cout<<"In rank nodes";
   uintE* r = gbbs::new_array_no_init<uintE>(n);
   sequence<uintE> o = sequence<uintE>::uninitialized(n);
 
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) { o[i] = i; });
   parlay::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
+    //std::cout<<"In rank nodesnfirst return\n";
     return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
   });
+  //std::cout<<"In rank nodes 2nd return \n";
   parallel_for(0, n, kDefaultGranularity, [&](size_t i) { r[o[i]] = i; });
+  //std::cout<<"r"<<r<<"\n";
   return r;
 }
 
@@ -177,6 +203,59 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts, const F& f) {
 //
 // Returns:
 //   The number of triangles in `G`.
+
+template <class Graph>
+inline size_t Lotus_Triangle_degree_ordering(Graph& G, const F& f) {
+
+}
+int hnn_traingle(struct Lotus_Graph* graph){
+    int triangle=0;
+    int start=graph->hub_count;
+    cout<<"\nhub_count"<<start;
+    //cout<<"Inside HNN counting\n";
+    //printGraph(graph->non_hub);
+    for (int i = start; i < N; i++)
+    {
+        // print current vertex and all its neighbors
+        int v=i;
+        struct Node* ptr = graph->non_hub->head[v];
+        vector <int> n_v=graph->hubs[i];
+        //cout<<"\nvertex"<<v;
+        //print_vector(n_v);
+        while (ptr != NULL)
+        {
+            //printf("(%d —> %d)\t", i, ptr->dest);
+            int neighbor=ptr->dest;
+            vector <int> n_u=graph->hubs[neighbor];
+            /*cout<<"\nvertex"<<i;
+            print_vector(n_v);
+            cout<<"\nneighboor"<<neighbor;
+            print_vector(n_u);*/
+            vector<int> v(n_v.size() + n_u.size());
+            vector<int>::iterator it, st;
+            /*cout<<"\nFirst vector";
+            print_vector(n_v);
+            cout<<"\nSecond vector";
+            print_vector(n_u);*/
+            sort(n_v.begin(), n_v.end());
+            sort(n_u.begin(), n_u.end());
+            it = set_intersection(n_v.begin(),n_v.end(),n_u.begin(),n_u.end(),v.begin());
+            //cout << "\nCommon elements:\n";
+            int count=0;
+            for (st = v.begin(); st != it; ++st){
+                //cout << *st << ", ";
+                count++;
+            }
+            //cout << '\n';
+            triangle=triangle+count;
+            //cout<<"\ntrangle"<<triangle<<" ";
+            ptr = ptr->next;
+        }
+        //printf("\n");
+    }
+    return triangle;
+}
+
 template <class Graph, class F>
 inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   using W = typename Graph::weight_type;
@@ -190,6 +269,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   timer rt;
   rt.start();
   uintE* rank = rankNodes(G, G.n);
+
   rt.stop();
   rt.next("rank time");
 
