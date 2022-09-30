@@ -148,15 +148,16 @@ inline size_t CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, size_t* counts
     //cout<<"code here\n";
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
       //cout<<"value of "<<i<<" ";
-      auto our_neighbors = DG1.get_vertex(i).out_neighbors();//third time
+      auto our_neighbors = DG2.get_vertex(i).out_neighbors();//third time
       //cout<<"neighbo\n";
       //cout<<"neighboors\n"<<our_neighbors<<"\n";
       //cout<<"neighbos"<<DG.get_vertex(i).out_neighbors()<<"\n";
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
+        auto neighbors2=DG1.get_vertex(u).out_neighbors();
         auto their_neighbors = DG1.get_vertex(v).out_neighbors();//forth time
         //cout<<"total before"<<total_ct<<"\n";
-        total_ct += our_neighbors.intersect_f_par(&their_neighbors, f);
+        total_ct += neighbors2.intersect_f_par(&their_neighbors, f);
         //cout<<"total after"<<total_ct<<"\n";
       };
       our_neighbors.map(map_f, false);  // run map sequentially
