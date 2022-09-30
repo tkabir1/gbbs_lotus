@@ -41,13 +41,14 @@ double Triangle_runner(Graph& G, commandLine P) {
   std::cout << "### Application: Triangle Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### n: " << G.n << G.num_vertices() <<std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: ordering=" << ordering << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
   size_t count = 0;
   auto f = [&](uintE u, uintE v, uintE w) {};
+  //std::cout << "f: " << f << std::endl;
   timer t;
   t.start();
   count = Triangle(G, f, ordering, P);
