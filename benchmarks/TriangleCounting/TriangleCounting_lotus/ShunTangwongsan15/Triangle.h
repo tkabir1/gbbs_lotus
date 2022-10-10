@@ -325,7 +325,7 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
             uintE v=nghA[j];
             //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[j]);
             total_ct=total_ct+hub2hub_array.find_edges(nghA[i],nghA[j]);
-            total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
+            //total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
           }
           //nghA[i]->neighbors
         }
