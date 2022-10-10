@@ -50,7 +50,24 @@ struct edge_array {
     n = 0;
     return std::move(E);
   }
-
+  size_t find_edges(uintE u, uintE v) {
+    size_t m = size();
+    for (int i=0;i<m;i++){
+      if ((std::get<0>(E[i])==u) && (std::get<1>(E[i])==v)){
+        return 1;
+      }
+      else if ((std::get<0>(E[i])==v) && (std::get<1>(E[i])==u)){
+        return 1;
+      }
+    }
+    return 0;
+  }
+  void print() {
+    size_t m = size();
+    for (int i=0;i<m;i++){
+      std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
+    }
+  }
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
     size_t m = size();
