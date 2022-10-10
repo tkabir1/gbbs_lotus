@@ -68,6 +68,22 @@ struct edge_array {
       std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
     }
   }
+  bool** convert_to_array(int num_v) {
+    bool **hub_array;
+    hub_array = (bool**)malloc(num_v * sizeof(bool*));
+    /*for (int i = 0; i < hub_count; i++){
+        hub_array[i] = (bool*)malloc(hub_count* sizeof(bool));
+    }*/
+    for (int i = 0; i < num_v; i++){
+        hub_array[i] = (bool*)malloc(i* sizeof(bool));
+    }
+    size_t m = size();
+    for (int i=0;i<m;i++){
+      hub_array[get<0>(E[i])][get<1>(E[i])]=1;
+      std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
+    }
+    return hub_array;
+  }
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
     size_t m = size();
