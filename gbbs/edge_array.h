@@ -54,15 +54,16 @@ struct edge_array {
   }
   size_t find_edges(uintE u, uintE v) {
     size_t m = size();
+    size_t flag=0;
     parallel_for(0, m, [&](size_t i) {
       if ((std::get<0>(E[i])==u) && (std::get<1>(E[i])==v)){
-        return 1;
+        flag=1;
       }
       else if ((std::get<0>(E[i])==v) && (std::get<1>(E[i])==u)){
-        return 1;
+        flag=1;
       }
     });
-    return 0;
+    return flag;
   }
   void print() {
     size_t m = size();
@@ -94,30 +95,35 @@ struct edge_array {
     return hub_array;
   }
 
- size_t* convert_to_bit(uint8_t num_v) {
-    size_t *hub_array;
-    size_t space=(num_v/64)+1;
-    hub_array = (size_t*)calloc(space*space,sizeof(size_t));
+ uint32_t* convert_to_bit(uint32_t num_v) {
+    uint32_t *hub_array;
+    //size_t space=(num_v/8)+1;
+    size_t space=((num_v*num_v)/32)+1;
+    hub_array = (uint32_t*)calloc(space,sizeof(uint32_t));
     /*for (int i = 0; i < hub_count; i++){
         hub_array[i] = (bool*)malloc(hub_count* sizeof(bool));
     }*/
     size_t m = size();
     size_t a=10;
-    std::cout<<"The size of integer is" <<sizeof(a)<<"\n";
-    parallel_for(0, m, [&](size_t i) {
-      uintE first=get<0>(E[i]);
-      uintE second=get<1>(E[i]);
+    //std::cout<<"The size of integer is" <<sizeof(a)<<"\n";
+    parallel_for(0, m, [&](uint32_t i) {
+      uint32_t first=get<0>(E[i]);
+      uint32_t second=get<1>(E[i]);
       if (first>second){
         first=get<1>(E[i]);
         second=get<0>(E[i]);
       }
-      std::cout<<"first: "<<first<<" second: "<<second;
-      size_t index1=((first/64)*space)+(second/64);
-      std::cout<<"index: "<<index1;
-      size_t or1=second%64;
-      std::cout<<"before: "<<std::bitset<sizeof(size_t)*8>(hub_array[index1])<<" and sec"<<(second%64)<<" with bit rep: "<<std::bitset<sizeof(size_t)*8>(1<<or1)<<"\n";
-      hub_array[index1]=((1 << or1) | hub_array[index1]);
-      std::cout<<"after: "<<std::bitset<sizeof(size_t)*8>(hub_array[index1])<<"\n";
+      //std::cout<<"first: "<<first<<" second: "<<second;
+      //size_t index1=((first/64)*space)+(second/64);
+
+      uint32_t index1=((first*num_v)+second)/32;
+      //std::cout<<"index: "<<unsigned(index1);
+      uint32_t or1=second%32;
+      uint32_t next=1;
+      //std::cout<<" index "<<unsigned(index1)<<" ";
+      //std::cout<<"before: "<<std::bitset<sizeof(uint32_t)*8>(hub_array[index1])<<" and sec"<<(second%32)<<" with bit rep: "<<std::bitset<sizeof(uint32_t)*8>(next<<or1)<<"\n";
+      hub_array[index1]=((next << or1) | hub_array[index1]);
+      //std::cout<<"after: "<<std::bitset<sizeof(uint8_t)*8>(hub_array[index1])<<"\n";
       //hub_array[first][second]=1;
     
       //std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
