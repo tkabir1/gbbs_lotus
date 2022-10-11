@@ -25,8 +25,10 @@
 
 #include "bridge.h"
 #include "macros.h"
+#include <bitset>
 
 namespace gbbs {
+
 
 // Edge Array Representation
 template <class W>
@@ -52,14 +54,14 @@ struct edge_array {
   }
   size_t find_edges(uintE u, uintE v) {
     size_t m = size();
-    for (int i=0;i<m;i++){
+    parallel_for(0, m, [&](size_t i) {
       if ((std::get<0>(E[i])==u) && (std::get<1>(E[i])==v)){
         return 1;
       }
       else if ((std::get<0>(E[i])==v) && (std::get<1>(E[i])==u)){
         return 1;
       }
-    }
+    });
     return 0;
   }
   void print() {
@@ -78,12 +80,51 @@ struct edge_array {
         hub_array[i] = (bool*)malloc(i* sizeof(bool));
     }
     size_t m = size();
-    for (int i=0;i<m;i++){
-      hub_array[get<0>(E[i])][get<1>(E[i])]=1;
-      std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
-    }
+    parallel_for(0, m, [&](size_t i) {
+      uintE first=get<0>(E[i]);
+      uintE second=get<1>(E[i]);
+      if (first>second){
+        first=get<1>(E[i]);
+        second=get<0>(E[i]);
+      }
+      hub_array[first][second]=1;
+    
+      //std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
+    });
     return hub_array;
   }
+
+ size_t* convert_to_bit(uint8_t num_v) {
+    size_t *hub_array;
+    size_t space=(num_v/64)+1;
+    hub_array = (size_t*)calloc(space*space,sizeof(size_t));
+    /*for (int i = 0; i < hub_count; i++){
+        hub_array[i] = (bool*)malloc(hub_count* sizeof(bool));
+    }*/
+    size_t m = size();
+    size_t a=10;
+    std::cout<<"The size of integer is" <<sizeof(a)<<"\n";
+    parallel_for(0, m, [&](size_t i) {
+      uintE first=get<0>(E[i]);
+      uintE second=get<1>(E[i]);
+      if (first>second){
+        first=get<1>(E[i]);
+        second=get<0>(E[i]);
+      }
+      std::cout<<"first: "<<first<<" second: "<<second;
+      size_t index1=((first/64)*space)+(second/64);
+      std::cout<<"index: "<<index1;
+      size_t or1=second%64;
+      std::cout<<"before: "<<std::bitset<sizeof(size_t)*8>(hub_array[index1])<<" and sec"<<(second%64)<<" with bit rep: "<<std::bitset<sizeof(size_t)*8>(1<<or1)<<"\n";
+      hub_array[index1]=((1 << or1) | hub_array[index1]);
+      std::cout<<"after: "<<std::bitset<sizeof(size_t)*8>(hub_array[index1])<<"\n";
+      //hub_array[first][second]=1;
+    
+      //std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
+    });
+    return hub_array;
+  }
+
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
     size_t m = size();
