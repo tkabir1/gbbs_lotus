@@ -293,7 +293,7 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
 
   //hub2hub_array.print();
   //bool** hub_int=hub2hub_array.convert_to_array(DG1.n);
-  size_t* storage=hub2hub_array.convert_to_bit(DG1.n);
+  uint32_t* storage=hub2hub_array.convert_to_bit(DG1.n);
   //cout<<"val"<<storage<<"\n";
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     //cout<<"code here\n";
@@ -320,20 +320,27 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
       }*/
       if (nA>=2){
         //cout<<" Done ";
-        for (int i=0;i<nA;i++)
+        for (int k=0;k<nA;k++)
         {
           //std::cout<<nghA[i]<<" , "<<nghA[i+1];
-          uintE u=nghA[i];
-          for (int j=(i+1);j<nA;j++){
+          uint32_t u=nghA[k];
+          for (int j=(k+1);j<nA;j++){
             //std::cout<<nghA[i]<<" , "<<nghA[j];
-            uintE v=nghA[j];
+            uint32_t v=nghA[j];
             //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[j]);
-            size_t space=(n/64)+1;
-            int index1=((u/64)*space)+(v/64);
+            //uint8_t space=(n/64)+1;
+            uint32_t index1=(u*n+v)/32;
             //hub_array[index1]=hub_array[index1]|(second%64)
-            size_t k=v%64;
-            if (storage[index1] & (1 << (k - 1)))
-                total_ct=total_ct+1;
+            uint32_t k=v%32;
+            uint32_t op=1;
+
+            //cout<<" first: "<<unsigned(u)<<" second: "<<unsigned(v)<<" now going to check ";
+            //cout<<"index "<<unsigned(index1)<<" storage val: "<<std::bitset<sizeof(uint32_t)*8>(storage[index1]);
+            //cout<<" checking: "<<std::bitset<sizeof(uint32_t)*8>((op << (k )));
+            if (storage[index1] & (op << (k))){
+              //cout<<"\n first: "<<unsigned(u)<<" second: "<<unsigned(v)<<"\n";
+              total_ct=total_ct+1;
+            }
             //total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
           }
           //nghA[i]->neighbors
@@ -429,18 +436,23 @@ inline size_t hub_checkedges_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,
       }*/
       if (nA>=2){
         //cout<<" Done ";
-        for (int i=0;i<nA;i++)
+        for (int k=0;k<nA;k++)
         {
           //std::cout<<nghA[i]<<" , "<<nghA[i+1];
-          uintE u=nghA[i];
-          for (int j=(i+1);j<nA;j++){
+          uintE u=nghA[k];
+          for (int j=(k+1);j<nA;j++){
             //std::cout<<nghA[i]<<" , "<<nghA[j];
             uintE v=nghA[j];
             //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[j]);
             /*if (hub_int[u][v]==1){
               total_ct=total_ct+1;
             }*/
-            total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
+            if (hub2hub_array.find_edges(u,v)){
+              cout<<"u: "<<u<<"v: "<<v<<"\n";
+            }
+            //cout<<"u: "<<u<<"v: "<<v<<" found: "<<hub2hub_array.find_edges(nghA[k],nghA[j])<<" ";
+            
+            total_ct=total_ct+hub2hub_array.find_edges(u,v);
           }
           //nghA[i]->neighbors
         }
@@ -572,11 +584,11 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   //size_t count=0;
   size_t count_hub = hub_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
   //size_t count_hub = hub_checkedges_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
-  //size_t count_hub_mod = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
+  //size_t count_hub = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
   //size_t count_hub = CountDirectedBalanced_lotus(hub, counts.begin(), f);
   size_t count_nonhub1 = CountDirectedBalanced_lotus(hub,non_hub, counts.begin(), f);
   size_t count_nonhub2 = CountDirectedBalanced_lotus(non_hub,non_hub, counts.begin(), f);
-  //cout<<"hub"<<count_hub<<"\n";
+  cout<<"hub"<<count_hub<<"\n";
   //cout<<"hub modified"<<count_hub_mod<<"\n";
   cout<<"nonhub1: "<<count_nonhub1<<"\n";
   cout<<"nonhub2: "<<count_nonhub2<<"\n";
