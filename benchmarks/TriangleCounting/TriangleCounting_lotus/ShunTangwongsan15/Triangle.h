@@ -186,7 +186,7 @@ inline size_t CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, size_t* counts
 
 
 template <class Graph, class F>
-inline size_t hub_modified_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, size_t* counts, const F& f) {
+inline size_t hub_modified_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* counts, const F& f) {
   using W = typename Graph::weight_type;
   debug(std::cout << "Starting counting"
                   << "\n";);
@@ -261,11 +261,11 @@ inline size_t hub_modified_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, s
 
 
 template <class Graph, class F>
-inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* counts, const F& f) {
+inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, uintE* rank,size_t* counts, const F& f) {
   using W = typename Graph::weight_type;
-  cout<<"edges number: "<<DG1.m;
+  //cout<<"edges number: "<<DG1.m;
   auto hub2hub_array=to_edge_array<gbbs::empty>(DG1);
-  cout<<"vertex: "<<hub2hub_array.size()<<"\n";
+  //cout<<"vertex: "<<hub2hub_array.size()<<"\n";
   debug(std::cout << "Starting counting"
                   << "\n";);
   size_t n = DG1.n;
@@ -293,7 +293,8 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
 
   //hub2hub_array.print();
   //bool** hub_int=hub2hub_array.convert_to_array(DG1.n);
-  uint32_t* storage=hub2hub_array.convert_to_bit(DG1.n);
+  int num=(int)((HUB_PERCENTAGE*1.0/100.0)*DG1.n);
+  uint32_t* storage=hub2hub_array.convert_to_bit(DG1.n,rank,num);
   //cout<<"val"<<storage<<"\n";
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     //cout<<"code here\n";
@@ -318,28 +319,44 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
         //total_ct=total_ct+hub2hub_array.find_edges(nghA[i],nghA[i+1]);
         //nghA[i]->neighbors
       }*/
+      //cout<<"vertex looping: "<<our_neighbors.id<<" and its neighbors: ";
       if (nA>=2){
         //cout<<" Done ";
+        /*for (int k=0;k<nA;k++)
+        {
+          std::cout<<nghA[k]<<" , ";
+        }*/
         for (int k=0;k<nA;k++)
         {
           //std::cout<<nghA[i]<<" , "<<nghA[i+1];
+          //cout<<"original u: "<<nghA[k];
           uint32_t u=nghA[k];
           for (int j=(k+1);j<nA;j++){
             //std::cout<<nghA[i]<<" , "<<nghA[j];
+            //cout<<" original v: "<<nghA[j]<<" ";
             uint32_t v=nghA[j];
             //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[j]);
-            //uint8_t space=(n/64)+1;
-            uint32_t index1=(u*n+v)/32;
-            //hub_array[index1]=hub_array[index1]|(second%64)
-            uint32_t k=v%32;
-            uint32_t op=1;
-
-            //cout<<" first: "<<unsigned(u)<<" second: "<<unsigned(v)<<" now going to check ";
-            //cout<<"index "<<unsigned(index1)<<" storage val: "<<std::bitset<sizeof(uint32_t)*8>(storage[index1]);
-            //cout<<" checking: "<<std::bitset<sizeof(uint32_t)*8>((op << (k )));
-            if (storage[index1] & (op << (k))){
-              //cout<<"\n first: "<<unsigned(u)<<" second: "<<unsigned(v)<<"\n";
-              total_ct=total_ct+1;
+            bool a=((rank[u]>=(DG1.n-num))&&(rank[v]>=(DG1.n-num)));
+            //cout<<"checking "<<nghA[k]<<" rank: "<<rank[u]<<" sec: "<<nghA[j]<<" and "<<rank[v]<<" a value: "<<a<<"\n";
+            if (a){
+              uint32_t u1=n-1-rank[u];
+              uint32_t v1=n-1-rank[v];
+              //uint8_t space=(n/64)+1;
+              uint32_t index1=(u1*num+v1)/32;
+              //hub_array[index1]=hub_array[index1]|(second%64)
+              uint32_t p=((u1*num)+v1)%32;;
+              uint32_t op=1;
+              //cout<<" first: "<<unsigned(u)<<" second: "<<unsigned(v)<<" now going to check ";
+              //cout<<"index "<<unsigned(index1)<<" storage val: "<<std::bitset<sizeof(uint32_t)*8>(storage[index1]);
+              //cout<<" checking: "<<std::bitset<sizeof(uint32_t)*8>((op << (p )));
+              if (storage[index1] & (op << (p))){
+                //cout<<" first: "<<unsigned(u)<<" second: "<<unsigned(v)<<" now going to check ";
+                //cout<<"index "<<unsigned(index1)<<" storage val: "<<std::bitset<sizeof(uint32_t)*8>(storage[index1]);
+                //cout<<" checking: "<<std::bitset<sizeof(uint32_t)*8>((op << (p )));
+                //cout<<"found "<<nghA[k]<<" sec: "<<nghA[j]<<"\n";
+                //cout<<"\n first: "<<unsigned(u)<<" second: "<<unsigned(v)<<"\n";
+                total_ct=total_ct+1;
+            }
             }
             //total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
           }
@@ -381,9 +398,9 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
 template <class Graph, class F>
 inline size_t hub_checkedges_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* counts, const F& f) {
   using W = typename Graph::weight_type;
-  cout<<"edges number: "<<DG1.m;
+  //cout<<"edges number: "<<DG1.m;
   auto hub2hub_array=to_edge_array<gbbs::empty>(DG1);
-  cout<<"vertex: "<<hub2hub_array.size()<<"\n";
+  //cout<<"vertex: "<<hub2hub_array.size()<<"\n";
   debug(std::cout << "Starting counting"
                   << "\n";);
   size_t n = DG1.n;
@@ -582,7 +599,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   timer ct;
   ct.start();
   //size_t count=0;
-  size_t count_hub = hub_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
+  size_t count_hub = hub_CountDirectedBalanced_lotus(hub2hub, hub,rank,counts.begin(), f);
   //size_t count_hub = hub_checkedges_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
   //size_t count_hub = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
   //size_t count_hub = CountDirectedBalanced_lotus(hub, counts.begin(), f);
