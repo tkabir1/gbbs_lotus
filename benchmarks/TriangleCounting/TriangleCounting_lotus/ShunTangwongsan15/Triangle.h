@@ -25,6 +25,7 @@
 #include <algorithm>
 
 #include "gbbs/gbbs.h"
+#include <bitset>
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
@@ -291,6 +292,9 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
             << " work per block = " << work_per_block << "\n";
 
   //hub2hub_array.print();
+  //bool** hub_int=hub2hub_array.convert_to_array(DG1.n);
+  size_t* storage=hub2hub_array.convert_to_bit(DG1.n);
+  //cout<<"val"<<storage<<"\n";
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     //cout<<"code here\n";
     //cout<<"start: "<<start_ind<<" and end: "<<end_ind<<"\n";
@@ -324,8 +328,119 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* cou
             //std::cout<<nghA[i]<<" , "<<nghA[j];
             uintE v=nghA[j];
             //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[j]);
-            total_ct=total_ct+hub2hub_array.find_edges(nghA[i],nghA[j]);
+            size_t space=(n/64)+1;
+            int index1=((u/64)*space)+(v/64);
+            //hub_array[index1]=hub_array[index1]|(second%64)
+            size_t k=v%64;
+            if (storage[index1] & (1 << (k - 1)))
+                total_ct=total_ct+1;
             //total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
+          }
+          //nghA[i]->neighbors
+        }
+      }
+      //cout<<"\n";
+      auto map_f = [&](uintE u, uintE v, W wgh) {
+        //cout<<""
+        //cout<<"vertex: "<<hub2hub_array.find_edges(u,v)<<"\n";
+        //size_t check=hub2hub_array.find_edges(u,v);
+        //cout<<"u: "<<u<<"v: "<<v<<" ";
+        //total_ct += our_neighbors.check_edge_lotus(&their_neighbors,f);
+        //cout<<"total after"<<total_ct<<"\n";
+      };
+      our_neighbors.map(map_f, false);  // run map sequentially
+      counts[i] = total_ct;
+      //cout<<"counts values"<<counts[i]<<"\n";
+    }
+    //cout<<"total: "<<total_ct<<"\n";
+  };
+
+  parallel_for(0, n_blocks, 1, [&](size_t i) {
+    //cout<<"entered in parallel for i\n"<<i<<" and work"<<work_per_block<<"\n";
+    size_t start = i * work_per_block;
+    size_t end = (i + 1) * work_per_block;
+    auto less_fn = std::less<size_t>();
+    size_t start_ind = parlay::binary_search(parallel_work, start, less_fn);
+    size_t end_ind = parlay::binary_search(parallel_work, end, less_fn);
+    //cout<<"start"<<start_ind<<" and end "<<end_ind<<"\n";
+    run_intersection(start_ind, end_ind);
+  });
+
+  auto count_seq = gbbs::make_slice<size_t>(counts, DG1.n);//fifth time
+  size_t count = parlay::reduce(count_seq);
+  //cout<<"count"<<count<<"\n";
+  return count;
+}
+template <class Graph, class F>
+inline size_t hub_checkedges_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,size_t* counts, const F& f) {
+  using W = typename Graph::weight_type;
+  cout<<"edges number: "<<DG1.m;
+  auto hub2hub_array=to_edge_array<gbbs::empty>(DG1);
+  cout<<"vertex: "<<hub2hub_array.size()<<"\n";
+  debug(std::cout << "Starting counting"
+                  << "\n";);
+  size_t n = DG1.n;
+  //cout<<"in lotus value of n"<<n<<"\n";
+
+  auto parallel_work = sequence<size_t>::uninitialized(n);
+  {
+    auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
+      //cout<<"inside function v"<<v<<" and "<<DG1.get_vertex(v).out_degree()<<"\n";
+      return DG2.get_vertex(v).out_degree();//first time
+    };
+    parallel_for(0, n, [&](size_t i) {
+      auto monoid = parlay::addm<size_t>();
+      parallel_work[i] = DG2.get_vertex(i).out_neighbors().reduce(map_f, monoid);//second time
+      //cout<<i<<"in seconf inside funstion: "<<parallel_work[i]<<"\n";
+    });
+  }
+  size_t total_work = parlay::scan_inplace(make_slice(parallel_work));
+
+  size_t block_size = 50000;
+  size_t n_blocks = total_work / block_size + 1;
+  size_t work_per_block = (total_work + n_blocks - 1) / n_blocks;
+  std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
+            << " work per block = " << work_per_block << "\n";
+
+  //hub2hub_array.print();
+  //bool** hub_int=hub2hub_array.convert_to_array(DG1.n);
+  auto run_intersection = [&](size_t start_ind, size_t end_ind) {
+    //cout<<"code here\n";
+    //cout<<"start: "<<start_ind<<" and end: "<<end_ind<<"\n";
+    for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
+      //cout<<"value of "<<i<<" ";
+      auto our_neighbors = DG2.get_vertex(i).out_neighbors();//third time
+      size_t total_ct = 0;
+      //auto our_neighbors2=DG1.get_vertex(i).out_neighbors();//third time
+      //cout<<"neighbo\n";
+      //cout<<"neighboors\n"<<((uintE*)(our_neighbors->neighbors))<<"\n";
+      //cout<<"neighbos"<<DG.get_vertex(i).out_neighbors()<<"\n";
+      //cout<<"\n";
+      uintT nA = our_neighbors.degree;
+      //cout<<"original vertex"<<DG1.get_vertex(i)<<"\n";
+      uintE* nghA = (uintE*)(our_neighbors.neighbors);
+      //cout<<"\nneighbors of: "<<i<<" : ";
+      /*for (int i=0;i<nA;i++)
+      {
+        std::cout<<nghA[i]<<" , ";
+        //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[i+1])<<" next";
+        //total_ct=total_ct+hub2hub_array.find_edges(nghA[i],nghA[i+1]);
+        //nghA[i]->neighbors
+      }*/
+      if (nA>=2){
+        //cout<<" Done ";
+        for (int i=0;i<nA;i++)
+        {
+          //std::cout<<nghA[i]<<" , "<<nghA[i+1];
+          uintE u=nghA[i];
+          for (int j=(i+1);j<nA;j++){
+            //std::cout<<nghA[i]<<" , "<<nghA[j];
+            uintE v=nghA[j];
+            //cout<<"check: "<<hub2hub_array.find_edges(nghA[i],nghA[j]);
+            /*if (hub_int[u][v]==1){
+              total_ct=total_ct+1;
+            }*/
+            total_ct=total_ct+hub2hub_array.find_edges(nghA[j],nghA[i]);
           }
           //nghA[i]->neighbors
         }
@@ -456,15 +571,17 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   ct.start();
   //size_t count=0;
   size_t count_hub = hub_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
-  size_t count_hub_mod = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
+  //size_t count_hub = hub_checkedges_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
+  //size_t count_hub_mod = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
   //size_t count_hub = CountDirectedBalanced_lotus(hub, counts.begin(), f);
   size_t count_nonhub1 = CountDirectedBalanced_lotus(hub,non_hub, counts.begin(), f);
   size_t count_nonhub2 = CountDirectedBalanced_lotus(non_hub,non_hub, counts.begin(), f);
-  cout<<"hub"<<count_hub<<"\n";
-  cout<<"hub modified"<<count_hub_mod<<"\n";
+  //cout<<"hub"<<count_hub<<"\n";
+  //cout<<"hub modified"<<count_hub_mod<<"\n";
   cout<<"nonhub1: "<<count_nonhub1<<"\n";
   cout<<"nonhub2: "<<count_nonhub2<<"\n";
   size_t count=count_hub+count_nonhub1+count_nonhub2;
+  //size_t count=count_hub_mod+count_nonhub1+count_nonhub2;
   //size_t count=count_hub;
   std::cout << "### Num triangles = " << count << "\n";
   ct.stop();
