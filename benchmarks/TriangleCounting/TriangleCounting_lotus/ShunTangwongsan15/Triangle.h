@@ -31,7 +31,7 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 using namespace std;
-#define HUB_PERCENTAGE 10
+//#define HUB_PERCENTAGE 10
 namespace gbbs {
 template <class Graph>
 struct Lotus{
@@ -261,10 +261,9 @@ inline size_t hub_modified_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,si
 
 
 template <class Graph, class F>
-inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, uintE* rank,size_t* counts, const F& f) {
+inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, uintE* rank,uint32_t* storage,size_t* counts, const F& f,double HUB_PERCENTAGE) {
   using W = typename Graph::weight_type;
   //cout<<"edges number: "<<DG1.m;
-  auto hub2hub_array=to_edge_array<gbbs::empty>(DG1);
   //cout<<"vertex: "<<hub2hub_array.size()<<"\n";
   debug(std::cout << "Starting counting"
                   << "\n";);
@@ -294,7 +293,9 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, uintE* ran
   //hub2hub_array.print();
   //bool** hub_int=hub2hub_array.convert_to_array(DG1.n);
   int num=(int)((HUB_PERCENTAGE*1.0/100.0)*DG1.n);
-  uint32_t* storage=hub2hub_array.convert_to_bit(DG1.n,rank,num);
+  //cout<<"working";
+  //uint32_t* storage=hub2hub_array.convert_to_bit(DG1.n,rank,num);
+  //cout<<"Even after working";
   //cout<<"val"<<storage<<"\n";
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     //cout<<"code here\n";
@@ -326,12 +327,12 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, uintE* ran
         {
           std::cout<<nghA[k]<<" , ";
         }*/
-        for (int k=0;k<nA;k++)
+        for (unsigned long k=0;k<nA;k++)
         {
           //std::cout<<nghA[i]<<" , "<<nghA[i+1];
           //cout<<"original u: "<<nghA[k];
           uint32_t u=nghA[k];
-          for (int j=(k+1);j<nA;j++){
+          for (unsigned long j=(k+1);j<nA;j++){
             //std::cout<<nghA[i]<<" , "<<nghA[j];
             //cout<<" original v: "<<nghA[j]<<" ";
             uint32_t v=nghA[j];
@@ -341,10 +342,15 @@ inline size_t hub_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2, uintE* ran
             if (a){
               uint32_t u1=n-1-rank[u];
               uint32_t v1=n-1-rank[v];
+              if (u1<v1){
+                uint32_t temp=u1;
+                u1=v1;
+                v1=temp;
+              }
               //uint8_t space=(n/64)+1;
-              uint32_t index1=(u1*num+v1)/32;
+              uint32_t index1=(((u1*(u1-1))/2)+v1)/32;
               //hub_array[index1]=hub_array[index1]|(second%64)
-              uint32_t p=((u1*num)+v1)%32;;
+              uint32_t p=(((u1*(u1-1))/2)+v1)%32;;
               uint32_t op=1;
               //cout<<" first: "<<unsigned(u)<<" second: "<<unsigned(v)<<" now going to check ";
               //cout<<"index "<<unsigned(index1)<<" storage val: "<<std::bitset<sizeof(uint32_t)*8>(storage[index1]);
@@ -523,7 +529,7 @@ inline size_t hub_checkedges_CountDirectedBalanced_lotus(Graph& DG1, Graph& DG2,
 // Returns:
 //   The number of triangles in `G`.
 template <class Graph, class F>
-inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
+inline size_t Triangle_degree_ordering(Graph& G, const F& f,double HUB_PERCENTAGE) {
   //cout<<"in degree function\n";
   //cout<<"Graph"<<G<<"\n";
   using W = typename Graph::weight_type;
@@ -592,6 +598,10 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   //auto non_hub=filterGraph(G, pack_predicate);
   //cout<<"new n in hub graph:"<<hub.m<<" and in non hub"<<non_hub.m<<" and prev"<<DG.m<<"\n";
   //auto DG = Graph::filterGraph(G, pack_predicate);
+  auto hub2hub_array=to_edge_array<gbbs::empty>(hub2hub);
+  int num=(int)((HUB_PERCENTAGE*1.0/100.0)*hub2hub.n);
+  uint32_t* storage=hub2hub_array.convert_to_bit(hub2hub.n,rank,num);
+  gt.next("Lotus Construction");
   gt.stop();
   gt.next("build graph time");
 
@@ -599,12 +609,16 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   timer ct;
   ct.start();
   //size_t count=0;
-  size_t count_hub = hub_CountDirectedBalanced_lotus(hub2hub, hub,rank,counts.begin(), f);
+  //ct.next("Lotus construction");
+  //size_t count_hub = hub_CountDirectedBalanced_lotus(hub2hub, hub,rank,storage,counts.begin(), f,HUB_PERCENTAGE);
+  ct.next("HHH and HHN countng time");
   //size_t count_hub = hub_checkedges_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
-  //size_t count_hub = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
+  size_t count_hub = hub_modified_CountDirectedBalanced_lotus(hub2hub, hub,counts.begin(), f);
   //size_t count_hub = CountDirectedBalanced_lotus(hub, counts.begin(), f);
   size_t count_nonhub1 = CountDirectedBalanced_lotus(hub,non_hub, counts.begin(), f);
+  ct.next("HNN countng time");
   size_t count_nonhub2 = CountDirectedBalanced_lotus(non_hub,non_hub, counts.begin(), f);
+  ct.next("NNN countng time");
   cout<<"hub"<<count_hub<<"\n";
   //cout<<"hub modified"<<count_hub_mod<<"\n";
   cout<<"nonhub1: "<<count_nonhub1<<"\n";
@@ -622,10 +636,11 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
 
 template <class Graph, class F>
 inline size_t Triangle(Graph& G, const F& f, const std::string& ordering,
-                       commandLine& P) {
+                       commandLine& P, double hub_p) {
+  cout<<"HUB percentage"<<hub_p<<"\n";
   if (ordering == "degree") {
     //cout<<"In ordering\n";
-    return Triangle_degree_ordering<Graph, F>(G, f);
+    return Triangle_degree_ordering<Graph, F>(G, f,hub_p);
   } else {
     std::cerr << "Unexpected ordering: " << ordering << '\n';
     exit(1);
