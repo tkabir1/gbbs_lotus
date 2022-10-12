@@ -65,12 +65,12 @@ struct edge_array {
     });
     return flag;
   }
-  void print() {
+  /*void print() {
     size_t m = size();
     for (int i=0;i<m;i++){
       std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
     }
-  }
+  }*/
   bool** convert_to_array(int num_v) {
     bool **hub_array;
     hub_array = (bool**)malloc(num_v * sizeof(bool*));
@@ -82,11 +82,11 @@ struct edge_array {
     }
     size_t m = size();
     parallel_for(0, m, [&](size_t i) {
-      uintE first=get<0>(E[i]);
-      uintE second=get<1>(E[i]);
+      uintE first=std::get<0>(E[i]);
+      uintE second=std::get<1>(E[i]);
       if (first>second){
-        first=get<1>(E[i]);
-        second=get<0>(E[i]);
+        first=std::get<1>(E[i]);
+        second=std::get<0>(E[i]);
       }
       hub_array[first][second]=1;
     
@@ -99,34 +99,39 @@ struct edge_array {
     uint32_t *hub_array;
     //std::cout<<"hub percentage: "<<num<<"\n";
     //size_t space=(num_v/8)+1;
-    size_t space=((num*num)/32)+1;
+    size_t space=(num*(num-1))/64;
     hub_array = (uint32_t*)calloc(space,sizeof(uint32_t));
     /*for (int i = 0; i < hub_count; i++){
         hub_array[i] = (bool*)malloc(hub_count* sizeof(bool));
     }*/
     size_t m = size();
-    size_t a=10;
+    //size_t a=10;
     int count_edge=0;
     //std::cout<<"The size of integer is" <<sizeof(a)<<"\n";
-    for (int i=0;i<m;i++) {
-      uint32_t first=get<0>(E[i]);
-      uint32_t second=get<1>(E[i]);
+    for (size_t i=0;i<m;i++) {
+      uint32_t first=std::get<0>(E[i]);
+      uint32_t second=std::get<1>(E[i]);
       //std::cout<<"first: "<<first<<" and rank: "<<rank[first];
       //std::cout<<"second: "<<second<<" and rank: "<<rank[second];
       bool a=((rank[first]>=(num_v-num))&&(rank[second]>=(num_v-num)));
       //std::cout<<"a: "<<a;
-      if (first>second){
-        first=get<1>(E[i]);
-        second=get<0>(E[i]);
-      }
+      /*if (first>second){
+        first=std::get<1>(E[i]);
+        second=std::get<0>(E[i]);
+      }*/
       if (a){
         count_edge++;
         first=num_v-1-rank[first];
         second=num_v-1-rank[second];
-        //std::cout<<"after: "<<first<<" and second "<<second;
-        uint32_t index1=((first*num)+second)/32;
+        if (first<second){
+          uint32_t temp=first;
+          first=second;
+          second=temp;
+        }
+        //std::cout<<"after: "<<first<<" and second "<<second<<"\n";
+        uint32_t index1=(((first*(first-1))/2)+second)/32;
         //std::cout<<"index: "<<unsigned(index1);
-        uint32_t or1=((first*num)+second)%32;
+        uint32_t or1=(((first*(first-1))/2)+second)%32;
         uint32_t next=1;
         //std::cout<<" index "<<unsigned(index1)<<" ";
         //std::cout<<"before: "<<std::bitset<sizeof(uint32_t)*8>(hub_array[index1])<<" and sec"<<(second%32)<<" with bit rep: "<<std::bitset<sizeof(uint32_t)*8>(next<<or1)<<"\n";
@@ -137,9 +142,11 @@ struct edge_array {
         //std::cout<<"edges number: "<<i<<" vertex: "<<get<0>(E[i])<<" , "<<get<1>(E[i])<<" ";
       }
       }
-      //std::cout<<"first: "<<first<<" second: "<<second;
+    //std::cout<<"first: "<<first<<" second: "<<second;
       //size_t index1=((first/64)*space)+(second/64);
     //std::cout<<" \nedge count "<<count_edge<<"\n";
+    /*for (int i=0;i<space;i++)
+      std::cout<<"i: "<<i<<"val: "<<std::bitset<sizeof(uint32_t)*8>(hub_array[i])<<" ";*/
     return hub_array;
   }
 
