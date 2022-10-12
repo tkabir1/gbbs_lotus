@@ -38,10 +38,12 @@ namespace gbbs {
 template <class Graph>
 double Triangle_runner(Graph& G, commandLine P) {
   auto ordering = P.getOptionValue("-ordering", "degree");
+  double hub_percen = static_cast<double>(P.getOptionDoubleValue("-hub", 0));
   std::cout << "### Application: Triangle Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Graph percen: " << P.getArgument(1) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << G.n << G.num_vertices() <<std::endl;
+  std::cout << "### n: " << G.n <<std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: ordering=" << ordering << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
@@ -51,7 +53,7 @@ double Triangle_runner(Graph& G, commandLine P) {
   //std::cout << "f: " << f << std::endl;
   timer t;
   t.start();
-  count = Triangle(G, f, ordering, P);
+  count = Triangle(G, f, ordering, P,hub_percen);
   double tt = t.stop();
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {
